@@ -157,10 +157,13 @@
 #
 ###############################
 
+
+### "Yusuf Sarıkaya Developing Branch" ###
 import numpy as np
 import cv2
 import easygui
 from math import atan
+
 
 def downscaleImages(img1, img2):
     height1, width1 = img1.shape[:2]
@@ -173,33 +176,35 @@ def downscaleImages(img1, img2):
         else:
             scale = maxWidth / width2
 
-        newImg1 = cv2.resize(src = img1, dsize = (int(width1 * scale), int(height1 * scale)), interpolation = cv2.INTER_AREA)
-        newImg2 = cv2.resize(src = img2, dsize = (int(width2 * scale), int(height2 * scale)), interpolation = cv2.INTER_AREA)
+        newImg1 = cv2.resize(src=img1, dsize=(int(width1 * scale), int(height1 * scale)), interpolation=cv2.INTER_AREA)
+        newImg2 = cv2.resize(src=img2, dsize=(int(width2 * scale), int(height2 * scale)), interpolation=cv2.INTER_AREA)
     else:
         newImg1 = img1.copy()
         newImg2 = img2.copy()
 
     return (newImg1, newImg2)
 
+
 def normaliseImages(img1, img2):
     height1, width1 = np.shape(img1)[:2]
     height2, width2 = np.shape(img2)[:2]
 
     if height1 * width1 > height2 * width2:
-        clahe = cv2.createCLAHE(clipLimit = 4, tileGridSize = (width1, height1))
+        clahe = cv2.createCLAHE(clipLimit=4, tileGridSize=(width1, height1))
     else:
-        clahe = cv2.createCLAHE(clipLimit = 4, tileGridSize = (width2, height2))
+        clahe = cv2.createCLAHE(clipLimit=4, tileGridSize=(width2, height2))
 
     return (clahe.apply(img1), clahe.apply(img2))
 
+
 def getMatches(img1, img2):
     akaze = cv2.AKAZE_create()
-    kp1, desc1 = akaze.detectAndCompute(image = img1, mask = None)
-    kp2, desc2 = akaze.detectAndCompute(image = img2, mask = None)
+    kp1, desc1 = akaze.detectAndCompute(image=img1, mask=None)
+    kp2, desc2 = akaze.detectAndCompute(image=img2, mask=None)
 
-    bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING, crossCheck = True)
-    matches = bf.match(queryDescriptors = desc1, trainDescriptors = desc2)
-    matches = sorted(matches, key = lambda match:match.distance)
+    bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(queryDescriptors=desc1, trainDescriptors=desc2)
+    matches = sorted(matches, key=lambda match: match.distance)
 
     matchedCoordinates = []
 
@@ -224,30 +229,33 @@ def getMatches(img1, img2):
 
     return matchedCoordinates
 
+
 def getDiameter(img):
     h, w = np.shape(img)[:2]
-    hyp = (w*w + h*h)**(1/2.0)
-    return (int(hyp)+1)
+    hyp = (w * w + h * h) ** (1 / 2.0)
+    return (int(hyp) + 1)
+
 
 def addBorders(img):
     hyp = getDiameter(img)
     mask = np.zeros((hyp, hyp, 3), np.uint8)
 
     y1, x1 = np.shape(mask)[:2]
-    cx = x1/2
-    cy = y1/2
+    cx = x1 / 2
+    cy = y1 / 2
 
     y2, x2 = np.shape(img)[:2]
-    cx2 = x2/2
-    cy2 = y2/2
+    cx2 = x2 / 2
+    cy2 = y2 / 2
 
     # Fix for odd sized images
     offsetX = x2 % 2
     offsetY = y2 % 2
 
-    mask[int(cy-cy2):int(cy+cy2 + offsetY) , int(cx-cx2):int(cx+cx2 + offsetX)] = img[0:y2, 0:x2]
+    mask[int(cy - cy2):int(cy + cy2 + offsetY), int(cx - cx2):int(cx + cx2 + offsetX)] = img[0:y2, 0:x2]
 
     return (mask)
+
 
 def getRotationAngle(img1, img2):
     matches = getMatches(img1, img2)
@@ -274,19 +282,20 @@ def getRotationAngle(img1, img2):
 
     return (rotationAngle)
 
+
 def removeBorders(img):
     h, w = np.shape(img)[:2]
 
-    B = cv2.cvtColor(src = img, code = cv2.COLOR_BGR2GRAY)
+    B = cv2.cvtColor(src=img, code=cv2.COLOR_BGR2GRAY)
 
     left = w
     right = 1
     top = h
     bottom = 1
 
-    for i in range (1, h):
-        for j in range (1, w):
-            if B[i,j] > 0:
+    for i in range(1, h):
+        for j in range(1, w):
+            if B[i, j] > 0:
 
                 if i < top:
                     top = i
@@ -304,15 +313,17 @@ def removeBorders(img):
 
     return C
 
+
 def rotateImage(img, rotationAngle):
     y, x = np.shape(img)[:2]
-    cx = x/2
-    cy = y/2
+    cx = x / 2
+    cy = y / 2
 
-    M = cv2.getRotationMatrix2D(center = (cx,cy), angle = rotationAngle, scale = 1)
-    R = cv2.warpAffine(src = img, M = M, dsize = (x, y), flags = cv2.INTER_CUBIC)
+    M = cv2.getRotationMatrix2D(center=(cx, cy), angle=rotationAngle, scale=1)
+    R = cv2.warpAffine(src=img, M=M, dsize=(x, y), flags=cv2.INTER_CUBIC)
 
     return R
+
 
 def checkRotation(img1, img2):
     matches = getMatches(img1, img2)
@@ -323,19 +334,20 @@ def checkRotation(img1, img2):
     point1BX = matches[1]['pt1']['x']
     point2BX = matches[1]['pt2']['x']
 
-    if(point1AX < point1BX and point2AX > point2BX):
+    if (point1AX < point1BX and point2AX > point2BX):
         return False
-    elif(point1AX > point1BX and point2AX < point2BX):
+    elif (point1AX > point1BX and point2AX < point2BX):
         return False
     else:
         return True
 
+
 def matchRotation(img1, img2):
-    print 'Rotating Images'
+    print('Rotating Images')
     borderedImg = addBorders(img2)
     rotationAngle = getRotationAngle(img1, img2)
     rotatedImage = rotateImage(borderedImg, rotationAngle)
-    if(checkRotation(img1, rotatedImage) == False):
+    if (checkRotation(img1, rotatedImage) == False):
         rotatedImage = rotateImage(rotatedImage, 180)
     croppedImage = removeBorders(rotatedImage)
 
@@ -343,7 +355,8 @@ def matchRotation(img1, img2):
 
 
 def getDistance(x1, y1, x2, y2):
-    return ((x1 - x2)**2 + (y1 - y2)**2)**(1/2.0)
+    return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** (1 / 2.0)
+
 
 def getScalingLevel(matches):
     # get (X,Y) for each point in top 2 matches
@@ -362,18 +375,19 @@ def getScalingLevel(matches):
     dist2 = getDistance(point2AX, point2AY, point2BX, point2BY)
 
     # return smaller distance divided by larger distance
-    if(dist1 < dist2):
+    if (dist1 < dist2):
         return ((dist1 / dist2), 0)
     else:
         return ((dist2 / dist1), 1)
 
+
 def scaleImages(img1, img2):
-    print 'Scaling Images'
+    print('Scaling Images')
     matches = getMatches(img1, img2)
     scalingLevel, i = getScalingLevel(matches)
 
     # find image to scale
-    if(i == 0):
+    if (i == 0):
         img = img2
     else:
         img = img1
@@ -385,15 +399,16 @@ def scaleImages(img1, img2):
     h = float(h)
 
     # resize to scalingLevel
-    S = cv2.resize(src = img, dsize = (int(w*scalingLevel), int(h*scalingLevel)), interpolation = cv2.INTER_CUBIC)
+    S = cv2.resize(src=img, dsize=(int(w * scalingLevel), int(h * scalingLevel)), interpolation=cv2.INTER_CUBIC)
 
-    if(i == 0):
+    if (i == 0):
         return (img1, S)
     else:
         return (S, img2)
 
+
 def locationCorrection(img1, img2):
-    print 'Translating Images'
+    print('Translating Images')
 
     (height, width) = img2.shape[:2]
     matches = getMatches(img1, img2)
@@ -407,17 +422,18 @@ def locationCorrection(img1, img2):
     difY = img1Y - img2Y
 
     translationMatrix = np.float32([[1, 0, difX], [0, 1, difY]])
-    transImg = cv2.warpAffine(src = img2, M = translationMatrix, dsize = (width, height), flags = cv2.INTER_LINEAR)
+    transImg = cv2.warpAffine(src=img2, M=translationMatrix, dsize=(width, height), flags=cv2.INTER_LINEAR)
 
     return transImg
 
+
 def getDifferences(img1, img2):
     akaze = cv2.AKAZE_create()
-    kp1, desc1 = akaze.detectAndCompute(image = img1, mask = None)
-    kp2, desc2 = akaze.detectAndCompute(image = img2, mask = None)
+    kp1, desc1 = akaze.detectAndCompute(image=img1, mask=None)
+    kp2, desc2 = akaze.detectAndCompute(image=img2, mask=None)
 
-    bf = cv2.BFMatcher(normType = cv2.NORM_HAMMING, crossCheck = True)
-    matches = bf.match(queryDescriptors = desc1, trainDescriptors = desc2)
+    bf = cv2.BFMatcher(normType=cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(queryDescriptors=desc1, trainDescriptors=desc2)
 
     for match in matches:
         kp1[match.queryIdx] = None
@@ -444,8 +460,9 @@ def getDifferences(img1, img2):
 
     return (differences1, differences2)
 
+
 def getMask(img1, img2):
-    print 'Searching for differences'
+    print('Searching for differences')
     img1Height, img1Width = img1.shape[:2]
 
     img1 = cv2.equalizeHist(img1)
@@ -460,16 +477,16 @@ def getMask(img1, img2):
 
     lastNoContours = len(img1Dif)
 
-    shape = cv2.getStructuringElement(shape = cv2.MORPH_RECT, ksize = (5, 5))
-    mask = cv2.dilate(src = mask, kernel = shape)
+    shape = cv2.getStructuringElement(shape=cv2.MORPH_RECT, ksize=(5, 5))
+    mask = cv2.dilate(src=mask, kernel=shape)
 
     for i in range(100):
-        _, contours, _ = cv2.findContours(image = mask.copy(), mode = cv2.RETR_EXTERNAL, method = cv2.CHAIN_APPROX_NONE)
+        _, contours, _ = cv2.findContours(image=mask.copy(), mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_NONE)
 
         for contour in contours:
-            x, y, w, h = cv2.boundingRect(points = contour)
+            x, y, w, h = cv2.boundingRect(points=contour)
 
-            patch = img1[y : y + h, x : x + w]
+            patch = img1[y: y + h, x: x + w]
             (_, value) = getBestMatch(img2, patch)
 
             if value > 0.5:
@@ -485,22 +502,24 @@ def getMask(img1, img2):
 
     return mask
 
-def getBestMatch(img, patch):
-    result = cv2.matchTemplate(image = img, templ = patch, method = cv2.TM_CCOEFF_NORMED)
 
-    (_, value, _, (x, y)) = cv2.minMaxLoc(src = result)
+def getBestMatch(img, patch):
+    result = cv2.matchTemplate(image=img, templ=patch, method=cv2.TM_CCOEFF_NORMED)
+
+    (_, value, _, (x, y)) = cv2.minMaxLoc(src=result)
 
     return ((x, y), value)
+
 
 def getAllPatches(mask):
     patches = []
 
-    _, contours, _ = cv2.findContours(image = mask.copy(), mode = cv2.RETR_TREE, method = cv2.CHAIN_APPROX_NONE)
+    _, contours, _ = cv2.findContours(image=mask.copy(), mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
     for contour in contours:
         arcPercentage = 0.01
-        epsilon = cv2.arcLength(curve = contour, closed = True) * arcPercentage
-        corners = cv2.approxPolyDP(curve = contour, epsilon = epsilon, closed = True)
-        x, y, w, h = cv2.boundingRect(points = corners)
+        epsilon = cv2.arcLength(curve=contour, closed=True) * arcPercentage
+        corners = cv2.approxPolyDP(curve=contour, epsilon=epsilon, closed=True)
+        x, y, w, h = cv2.boundingRect(points=corners)
         currentArea = w * h
 
         # Ignore points
@@ -509,18 +528,20 @@ def getAllPatches(mask):
 
     return patches
 
-def getBestPatches(sourceImg, checkImg, patches, threshold = 0.5):
+
+def getBestPatches(sourceImg, checkImg, patches, threshold=0.5):
     bestPatches = []
     for (x, y, w, h) in patches:
-        patch = sourceImg[y : y + h, x : x + w]
+        patch = sourceImg[y: y + h, x: x + w]
         ((mX, mY), matchValue) = getBestMatch(checkImg, patch)
         if matchValue < threshold:
             bestPatches.append((x, y, w, h))
 
     return bestPatches
 
+
 def getBestPatchesAuto(sourceImg, checkImg, patches):
-    print 'Eliminating false-positives'
+    print('Eliminating false-positives')
     for th in range(100):
         threshold = th / 100.0
         bestPatches = getBestPatches(sourceImg, checkImg, patches, threshold)
@@ -528,49 +549,51 @@ def getBestPatchesAuto(sourceImg, checkImg, patches):
             return bestPatches
     return bestPatches
 
-def addBar(img,new_width,new_height):
-	newImg = np.zeros((new_height, new_width, 3), np.uint8)
 
-	y1, x1 = np.shape(newImg)[:2]
-	cx = x1/2
-	cy = y1/2
+def addBar(img, new_width, new_height):
+    newImg = np.zeros((new_height, new_width, 3), np.uint8)
 
-	y2, x2 = np.shape(img)[:2]
-	cx2 = x2/2
-	cy2 = y2/2
+    y1, x1 = np.shape(newImg)[:2]
+    cx = x1 / 2
+    cy = y1 / 2
+
+    y2, x2 = np.shape(img)[:2]
+    cx2 = x2 / 2
+    cy2 = y2 / 2
 
     # Fix for odd sized images
-	offsetX = x2 % 2
-	offsetY = y2 % 2
+    offsetX = x2 % 2
+    offsetY = y2 % 2
 
-	newImg[int(cy-cy2):int(cy+cy2 + offsetY) , int(cx-cx2):int(cx+cx2 + offsetX)] = img[0:y2, 0:x2]
+    newImg[int(cy - cy2):int(cy + cy2 + offsetY), int(cx - cx2):int(cx + cx2 + offsetX)] = img[0:y2, 0:x2]
 
-	return newImg
+    return newImg
 
-def addBars(img1,img2):
 
-	height1,width1=img1.shape[:2]
-	height2,width2=img2.shape[:2]
+def addBars(img1, img2):
+    height1, width1 = img1.shape[:2]
+    height2, width2 = img2.shape[:2]
 
-	if width1 != width2:
-		if width1 > width2:
-			img2=addBar(img2,width1,height2)
-			height2,width2=img2.shape[:2]
+    if width1 != width2:
+        if width1 > width2:
+            img2 = addBar(img2, width1, height2)
+            height2, width2 = img2.shape[:2]
 
-		else:
-			img1=addBar(img1,width2,height1)
-			height1,width1=img1.shape[:2]
+        else:
+            img1 = addBar(img1, width2, height1)
+            height1, width1 = img1.shape[:2]
 
-	if height1 != height2:
-		if height1>height2:
+    if height1 != height2:
+        if height1 > height2:
 
-			img2=addBar(img2,width2,height1)
+            img2 = addBar(img2, width2, height1)
 
-		else:
+        else:
 
-			img1=addBar(img1,width1,height2)
+            img1 = addBar(img1, width1, height2)
 
-	return(img1,img2)
+    return (img1, img2)
+
 
 applicationSwitch = True
 file1Ver = False
@@ -585,7 +608,7 @@ while applicationSwitch:
     else:
         buttons = ['Load Image 1', 'Load Image 2', 'Begin Application']
 
-    selection = easygui.indexbox(msg = instruction, title = title, choices = buttons)
+    selection = easygui.indexbox(msg=instruction, title=title, choices=buttons)
 
     if selection == 0:
         file1 = easygui.fileopenbox()
@@ -608,8 +631,8 @@ while applicationSwitch:
         (img1, img2) = scaleImages(img1, img2)
         img2 = locationCorrection(img1, img2)
 
-        gImg1 = cv2.cvtColor(src = img1, code = cv2.COLOR_BGR2GRAY)
-        gImg2 = cv2.cvtColor(src = img2, code = cv2.COLOR_BGR2GRAY)
+        gImg1 = cv2.cvtColor(src=img1, code=cv2.COLOR_BGR2GRAY)
+        gImg2 = cv2.cvtColor(src=img2, code=cv2.COLOR_BGR2GRAY)
 
         mask = getMask(gImg1, gImg2)
 
@@ -626,7 +649,7 @@ while applicationSwitch:
 
         stackedImages = np.hstack((img1, img2))
 
-        print 'Done'
+        print('Done')
         cv2.imshow('Differences', stackedImages)
         cv2.waitKey(0)
         applicationSwitch = False
